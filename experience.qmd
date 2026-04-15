@@ -1,0 +1,46 @@
+---
+title: "Experience"
+---
+
+## Professional Experience
+
+### Business Operations Analyst Intern
+**Shenwan Hongyuan Securities**
+*December 2024 – February 2025*
+
+During my internship, I worked with transaction and operational data to improve data quality and workflow efficiency.
+
+- Analyzed financial transaction data using Python and Excel
+- Identified recurring issues and improved data accuracy
+- Collaborated with cross-functional teams to resolve discrepancies
+- Helped streamline and automate operational processes
+
+---
+
+### Operations Data Intern
+**Shanghai Pudong Development Bank**
+*June 2022 – July 2022*
+
+In this role, I supported daily banking operations by ensuring data accuracy and consistency.
+
+- Processed and analyzed client transaction data
+- Reviewed and structured customer information for compliance
+- Worked with branch teams to resolve data issues
+- Improved efficiency in daily operational workflows
+
+---
+
+## What I Gained
+
+Through these experiences, I developed:
+
+- Strong data analysis skills using Python and Excel
+- The ability to work with real-world financial data
+- Experience collaborating across teams
+- A deeper understanding of business operations and data-driven decision making
+
+---
+
+## Current Focus
+
+I am currently pursuing a Master’s degree in Business Analytics at UC San Diego, where I continue to build my skills in data analysis, machine learning, and business strategy.

@@ -1,0 +1,23 @@
+h1 {
+  color: #2c6bed;
+  font-weight: 700;
+}
+
+h2 {
+  color: #444;
+  margin-top: 2rem;
+}
+
+h3 {
+  color: #222;
+  margin-top: 1.25rem;
+}
+
+main.content {
+  max-width: 900px;
+}
+
+em {
+  color: #666;
+  font-style: italic;
+}

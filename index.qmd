@@ -1,0 +1,13 @@
+---
+title: "He(Raven) Zou"
+image: "files/profile_pic.jpg"
+about:
+  template: jolla
+  links:
+    - icon: envelope
+      href: mailto:hezou@ucsd.edu
+    - icon: linkedin
+      href: https://www.linkedin.com/in/he-zou
+---
+
+Welcome to my website!
