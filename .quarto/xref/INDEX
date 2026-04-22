@@ -10,5 +10,20 @@
   },
   "posts/hw2_questions.qmd": {
     "hw2_questions.html": "e775e39c"
+  },
+  "resume.qmd": {
+    "resume.html": "836f970f"
+  },
+  "projects/project1/index.qmd": {
+    "index.html": "03e83bcd"
+  },
+  "projects/project2/index.qmd": {
+    "index.html": "a6b75872"
+  },
+  "projects.qmd": {
+    "projects.html": "9a451dbd"
+  },
+  "experience.qmd": {
+    "experience.html": "554bb6e6"
   }
 }

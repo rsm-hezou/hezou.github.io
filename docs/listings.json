@@ -1,16 +1,16 @@
 [
   {
-    "listing": "/projects.html",
-    "items": [
-      "/projects/project1/index.html",
-      "/projects/project2/index.html"
-    ]
-  },
-  {
     "listing": "/blog.html",
     "items": [
       "/posts/hw2_questions.html",
       "/posts/hw1_questions.html"
+    ]
+  },
+  {
+    "listing": "/projects.html",
+    "items": [
+      "/projects/project1/index.html",
+      "/projects/project2/index.html"
     ]
   }
 ]
