@@ -227,7 +227,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="data-preparation" class="level3">
 <h3 class="anchored" data-anchor-id="data-preparation">Data Preparation</h3>
 <p>I begin by importing the original data set provided by Card and Krueger (1994). The data are stored as a flat ASCII file, which I read using whitespace as the delimiter.</p>
-<div id="473fa4b4" class="cell" data-execution_count="1">
+<div id="003f3e24" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(</span>
@@ -250,7 +250,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>df.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/var/folders/1r/8gdjbp5925v9fjjt_6sq5h1m0000gn/T/ipykernel_50214/3896136088.py:3: FutureWarning:
+<pre><code>/var/folders/1r/8gdjbp5925v9fjjt_6sq5h1m0000gn/T/ipykernel_51575/3896136088.py:3: FutureWarning:
 
 The 'delim_whitespace' keyword in pd.read_csv is deprecated and will be removed in a future version. Use ``sep='\s+'`` instead
 </code></pre>
@@ -418,7 +418,7 @@ The 'delim_whitespace' keyword in pd.read_csv is deprecated and will be removed 
 <p>Next, I assign variable names according to the codebook provided with the data. This allows me to work with meaningful variable names such as employment, wages, and prices rather than numeric column indices.</p>
 <p>I then construct the key variables used in the analysis. In particular, I compute full-time equivalent (FTE) employment as the number of full-time workers plus managers plus half the number of part-time workers, following the definition in the paper. I also extract the starting wage and construct the price of a full meal as the sum of the prices of a soda, fries, and an entree.</p>
 <p>Finally, I create a state indicator that distinguishes between New Jersey (treatment group) and Pennsylvania (control group), which will be used in the difference-in-differences analysis.</p>
-<div id="bdbf5872" class="cell" data-execution_count="2">
+<div id="e55d732c" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.replace(<span class="st">"."</span>, np.nan)</span>
@@ -518,7 +518,7 @@ The 'delim_whitespace' keyword in pd.read_csv is deprecated and will be removed 
 <section id="table-2-means-of-key-variables" class="level3">
 <h3 class="anchored" data-anchor-id="table-2-means-of-key-variables">Table 2: Means of Key Variables</h3>
 <p>I begin by reproducing the first part of Table 2, which reports the distribution of store types in New Jersey and Pennsylvania. This part of the table shows the shares of Burger King, KFC, Roy Rogers, and Wendy’s restaurants, as well as the share of company-owned stores. The purpose is to compare the composition of restaurants across the two states before examining employment and wage outcomes.</p>
-<div id="01a24e9c" class="cell" data-execution_count="3">
+<div id="8157d94f" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Table 2, Part 1: distribution of store types</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"bk"</span>] <span class="op">=</span> (df[<span class="st">"chain"</span>] <span class="op">==</span> <span class="dv">1</span>).astype(<span class="bu">float</span>)</span>
@@ -582,7 +582,7 @@ The 'delim_whitespace' keyword in pd.read_csv is deprecated and will be removed 
 <p>The share of company-owned stores is also similar, at 34.1% in New Jersey and 35.4% in Pennsylvania.</p>
 <p>Overall, the composition of restaurants across the two states is quite similar, with no large differences in the distribution of chains or ownership.</p>
 <p>I next reproduce the Wave 1 means reported in Table 2, which summarize employment, wages, prices, hours of operation, and recruiting practices for restaurants in New Jersey and Pennsylvania before the minimum wage increase.</p>
-<div id="4f602a3c" class="cell" data-execution_count="4">
+<div id="1d6e08af" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Table 2, Part 2: Wave 1 means</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"pct_fulltime"</span>] <span class="op">=</span> df[<span class="st">"empft"</span>] <span class="op">/</span> (df[<span class="st">"empft"</span>] <span class="op">+</span> df[<span class="st">"emppt"</span>])</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"wage_425"</span>] <span class="op">=</span> (df[<span class="st">"wage_st"</span>] <span class="op">==</span> <span class="fl">4.25</span>).astype(<span class="bu">float</span>)</span>
@@ -656,7 +656,7 @@ The 'delim_whitespace' keyword in pd.read_csv is deprecated and will be removed 
 <p>Average starting wages are 4.61 in New Jersey and 4.63 in Pennsylvania. The proportion of stores paying exactly $4.25 per hour is 30.51% in New Jersey and 32.91% in Pennsylvania.</p>
 <p>The average price of a full meal is 3.35 in New Jersey and 3.04 in Pennsylvania. Average weekday hours open are 14.42 in New Jersey and 14.53 in Pennsylvania. The share of stores offering a recruiting bonus is 23.56% in New Jersey and 29.11% in Pennsylvania.</p>
 <p>I now reproduce the Wave 2 means reported in Table 2, which summarize employment, wages, prices, hours of operation, and recruiting practices after the minimum wage increase.</p>
-<div id="cb727ad7" class="cell" data-execution_count="5">
+<div id="826cd0db" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Table 2, Part 3: Wave 2 means</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"pct_fulltime2"</span>] <span class="op">=</span> df[<span class="st">"empft2"</span>] <span class="op">/</span> (df[<span class="st">"empft2"</span>] <span class="op">+</span> df[<span class="st">"emppt2"</span>])</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"wage_425_2"</span>] <span class="op">=</span> (df[<span class="st">"wage_st2"</span>] <span class="op">==</span> <span class="fl">4.25</span>).astype(<span class="bu">float</span>)</span>
@@ -739,7 +739,7 @@ The 'delim_whitespace' keyword in pd.read_csv is deprecated and will be removed 
 <section id="table-3-difference-in-differences-estimate" class="level3">
 <h3 class="anchored" data-anchor-id="table-3-difference-in-differences-estimate">Table 3: Difference-in-Differences Estimate</h3>
 <p>I replicate the first three rows and first three columns of Table 3. I report the mean FTE employment before and after the policy change for New Jersey and Pennsylvania, and compute the change as the difference between the two periods. The difference-in-differences estimate is obtained as the difference between the changes in New Jersey and Pennsylvania.</p>
-<div id="c83ed2fc" class="cell" data-execution_count="6">
+<div id="c49be589" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Row 1: before (all available)</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>before <span class="op">=</span> df.groupby(<span class="st">"state_name"</span>)[<span class="st">"fte"</span>].mean()</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -808,7 +808,7 @@ The 'delim_whitespace' keyword in pd.read_csv is deprecated and will be removed 
 <section id="table-4-reduced-form-model-for-change-in-employment" class="level3">
 <h3 class="anchored" data-anchor-id="table-4-reduced-form-model-for-change-in-employment">Table 4: Reduced-Form Model for Change in Employment</h3>
 <p>I next replicate column (i) of Table 4 in Card and Krueger (1994). In this specification, the dependent variable is the change in full-time-equivalent employment between Wave 1 and Wave 2, and the only explanatory variable is a dummy for whether the restaurant is located in New Jersey. This is the simplest reduced-form specification in the paper and corresponds to a difference-in-differences regression without additional controls.</p>
-<div id="544f5053" class="cell" data-execution_count="7">
+<div id="58411d7b" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Table 4, column (i): use stores with non-missing employment and wage data in both waves</span></span>
@@ -896,7 +896,7 @@ The 'delim_whitespace' keyword in pd.read_csv is deprecated and will be removed 
 <section id="something-additional" class="level2">
 <h2 class="anchored" data-anchor-id="something-additional">Something Additional</h2>
 <p>In addition to replicating the main tables, I present a graphical illustration of the difference-in-differences result. While the paper reports the employment changes in tabular form, a simple plot can help visualize how employment evolved in New Jersey and Pennsylvania before and after the policy change.</p>
-<div id="bdc9f296" class="cell" data-execution_count="8">
+<div id="cc1cb12b" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>before <span class="op">=</span> df.groupby(<span class="st">"state_name"</span>)[<span class="st">"fte"</span>].mean()</span>
