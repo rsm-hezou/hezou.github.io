@@ -23,6 +23,7 @@ In this post, I use Poisson regression and maximum likelihood estimation to stud
 Before estimating a Poisson regression model, I first explore the raw patterns in the data. The outcome variable is `patents`, which records the number of patents awarded to each firm over the past five years. The main explanatory variable is `iscustomer`, which indicates whether the firm uses Blueprinty's software. The dataset also includes each firm's region and age, which may also be related to patent outcomes.
 ```{python}
 #| label: load-data
+#| echo: false
 #| message: false
 #| warning: false
 
@@ -77,6 +78,7 @@ for patent_summary_row in patent_summary_by_customer.rows(named=True):
 
 display(Markdown(patent_summary_markdown))
 ```
+
 Blueprinty customers received an average of 4.13 patents over the past five years, compared with 3.47 patents for non-customers. This raw difference is consistent with Blueprinty's claim that its software is associated with better patent outcomes. However, this comparison is only descriptive. Customers may differ from non-customers in other ways, so the difference should not be interpreted as causal evidence.
 
 ### Distribution of patent awards
@@ -86,13 +88,16 @@ The average patent count is helpful, but it does not show the full distribution 
 #| label: patent-histograms
 #| echo: false
 #| fig-cap: "Distribution of patent awards by Blueprinty customer status."
+#| fig-width: 7
+#| fig-height: 6
+#| out-width: "100%"
 
 patent_max_value = int(blueprinty.select(pl.col("patents").max()).item())
 patent_bins = np.arange(-0.5, patent_max_value + 1.5, 1)
 
 patent_histogram_statuses = ["Non-customers", "Blueprinty customers"]
 
-fig, axes = plt.subplots(1, 2, figsize=(11, 4), sharex=True, sharey=True)
+fig, axes = plt.subplots(2, 1, figsize=(7, 6), sharex=True, sharey=True)
 
 for patent_axis, patent_status in zip(axes, patent_histogram_statuses):
     patent_values_for_status = (
@@ -104,9 +109,11 @@ for patent_axis, patent_status in zip(axes, patent_histogram_statuses):
     )
 
     patent_axis.hist(patent_values_for_status, bins=patent_bins)
-    patent_axis.set_title(patent_status)
-    patent_axis.set_xlabel("Patents awarded in last 5 years")
-    patent_axis.set_ylabel("Number of firms")
+    patent_axis.set_title(patent_status, fontsize=11)
+    patent_axis.set_ylabel("Number of firms", fontsize=9)
+    patent_axis.tick_params(axis="both", labelsize=8)
+
+axes[-1].set_xlabel("Patents awarded in last 5 years", fontsize=9)
 
 fig.tight_layout()
 plt.show()
@@ -120,6 +127,10 @@ One possible concern is that Blueprinty customers may not be geographically comp
 #| label: region-distribution
 #| echo: false
 #| fig-cap: "Regional distribution by Blueprinty customer status."
+#| fig-width: 6.5
+#| fig-height: 3.4
+#| out-width: "85%"
+#| fig-align: center
 
 region_distribution_order = (
     blueprinty
@@ -133,9 +144,9 @@ region_distribution_order = (
 region_distribution_statuses = ["Non-customers", "Blueprinty customers"]
 
 region_x_positions = np.arange(len(region_distribution_order))
-region_bar_width = 0.35
+region_bar_width = 0.32
 
-fig, region_axis = plt.subplots(figsize=(10, 4))
+fig, region_axis = plt.subplots(figsize=(6.5, 3.4))
 
 for region_status_index, region_status_value in enumerate(region_distribution_statuses):
     region_status_data = blueprinty.filter(pl.col("customer_status") == region_status_value)
@@ -160,11 +171,12 @@ for region_status_index, region_status_value in enumerate(region_distribution_st
     )
 
 region_axis.set_xticks(region_x_positions)
-region_axis.set_xticklabels(region_distribution_order, rotation=30, ha="right")
-region_axis.set_ylabel("Share of firms (%)")
-region_axis.set_xlabel("Region")
-region_axis.set_title("Regional distribution by customer status")
-region_axis.legend()
+region_axis.set_xticklabels(region_distribution_order, rotation=25, ha="right", fontsize=8)
+region_axis.set_ylabel("Share of firms (%)", fontsize=9)
+region_axis.set_xlabel("Region", fontsize=9)
+region_axis.set_title("Regional distribution by customer status", fontsize=11)
+region_axis.tick_params(axis="y", labelsize=8)
+region_axis.legend(fontsize=8, loc="upper left", frameon=True)
 
 fig.tight_layout()
 plt.show()
@@ -206,6 +218,10 @@ display(Markdown(age_summary_markdown))
 #| label: age-histograms
 #| echo: false
 #| fig-cap: "Distribution of firm age by Blueprinty customer status."
+#| fig-width: 6.5
+#| fig-height: 5.8
+#| out-width: "85%"
+#| fig-align: center
 
 age_min_value = float(blueprinty.select(pl.col("age").min()).item())
 age_max_value = float(blueprinty.select(pl.col("age").max()).item())
@@ -213,7 +229,7 @@ age_bins = np.linspace(age_min_value, age_max_value, 20)
 
 age_histogram_statuses = ["Non-customers", "Blueprinty customers"]
 
-fig, age_axes = plt.subplots(1, 2, figsize=(11, 4), sharex=True, sharey=True)
+fig, age_axes = plt.subplots(2, 1, figsize=(6.5, 5.8), sharex=True, sharey=True)
 
 for age_axis, age_status in zip(age_axes, age_histogram_statuses):
     age_values_for_status = (
@@ -225,9 +241,11 @@ for age_axis, age_status in zip(age_axes, age_histogram_statuses):
     )
 
     age_axis.hist(age_values_for_status, bins=age_bins)
-    age_axis.set_title(age_status)
-    age_axis.set_xlabel("Firm age")
-    age_axis.set_ylabel("Number of firms")
+    age_axis.set_title(age_status, fontsize=11)
+    age_axis.set_ylabel("Number of firms", fontsize=9)
+    age_axis.tick_params(axis="both", labelsize=8)
+
+age_axes[-1].set_xlabel("Firm age", fontsize=9)
 
 fig.tight_layout()
 plt.show()
@@ -237,10 +255,7 @@ Blueprinty customers are slightly older on average than non-customers. Customers
 Overall, the exploratory analysis shows that Blueprinty customers have higher average patent counts, but they also differ from non-customers in region and age. Therefore, a simple comparison of means is not enough. The next sections use Poisson regression to estimate the relationship between Blueprinty usage and patent awards while controlling for these observable firm characteristics.
 
 
-
 ## A Simple Poisson Model via Maximum Likelihood
-## A Simple Poisson Model via Maximum Likelihood
-
 The outcome variable in this dataset is the number of patents awarded to each firm over the last five years. Since patents are count data, they cannot be negative and must take integer values. A normal distribution is not a natural fit for this type of outcome because it allows negative values and assumes a continuous, symmetric distribution. A Poisson distribution is a natural starting point for modeling non-negative integer outcomes.
 
 For a single firm, suppose the number of patents is distributed as:
@@ -280,6 +295,7 @@ The goal of maximum likelihood estimation is to find the value of $\lambda$ that
 #| label: simple-poisson-loglikelihood
 #| message: false
 #| warning: false
+#| code-summary: "Show likelihood code"
 
 from scipy.special import gammaln
 
@@ -299,7 +315,7 @@ def poisson_loglikelihood(lambda_value, y_values):
 ```
 ```{python}
 #| label: simple-poisson-loglikelihood-plot
-#| echo: false
+#| code-summary: "Show log-likelihood plot code"
 #| fig-cap: "Log-likelihood for different values of lambda."
 
 lambda_grid = np.linspace(0.1, 8, 300)
@@ -357,6 +373,7 @@ So, in the simple Poisson model, the MLE for $\lambda$ is just the sample mean o
 #| label: simple-poisson-mle
 #| message: false
 #| warning: false
+#| code-summary: "Show simple Poisson MLE code"
 
 from scipy.optimize import minimize
 
@@ -429,6 +446,7 @@ $$
 The goal is to find the coefficient vector $\beta$ that maximizes this log-likelihood.
 ```{python}
 #| label: poisson-regression-design-matrix
+#| echo: false
 #| message: false
 #| warning: false
 
@@ -578,8 +596,6 @@ $$
 This means that Blueprinty customers are predicted to have about 23% higher expected patent counts than comparable non-customers, holding the other variables fixed.
 
 The age coefficient is positive and the age-squared coefficient is negative, suggesting that patenting increases with firm age but at a decreasing rate. The region variables are included as controls, with the Midwest as the reference region.
-
-To check that my manual maximum likelihood estimates are correct, I next estimate the same model using `statsmodels`' built-in Poisson GLM function.
 
 To check the manual maximum likelihood estimates, I fit the same Poisson regression model using `statsmodels`. The estimates should match the coefficients obtained from the custom likelihood function.
 ```{python}

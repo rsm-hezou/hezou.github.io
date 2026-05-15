@@ -1,0 +1,385 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Replication of Card and Krueger (1994)\"\n",
+        "subtitle: \"Minimum Wages and Employment: A Case Study of the Fast-Food Industry in New Jersey and Pennsylvania\"\n",
+        "author: \"He Zou\"\n",
+        "date: 2026-04-21\n",
+        "---\n",
+        "\n",
+        "\n",
+        "## Introduction\n",
+        "\n",
+        "This paper studies the effect of minimum wage increases on employment in the fast-food industry. In April 1992, the state of New Jersey raised its minimum wage from $4.25 to $5.05 per hour, while neighboring Pennsylvania did not change its minimum wage. This policy change provides a natural experiment to evaluate how firms respond to higher labor costs.\n",
+        "\n",
+        "Card and Krueger (1994) collect survey data from fast-food restaurants in New Jersey and eastern Pennsylvania before and after the policy change. By comparing employment changes in New Jersey (treatment group) to those in Pennsylvania (control group), the authors implement a difference-in-differences (DiD) strategy to estimate the causal effect of the minimum wage increase.\n",
+        "\n",
+        "The main question of the paper is whether an increase in the minimum wage reduces employment. Standard economic theory predicts a negative effect. However, the authors find that employment in New Jersey did not decline relative to Pennsylvania after the increase, and may have even increased slightly.\n",
+        "\n",
+        "In this replication, I reproduce key summary statistics and the main difference-in-differences estimate from the paper. I also extend the analysis by presenting additional results to better understand the findings.\n",
+        "\n",
+        "## Main Analysis\n",
+        "\n",
+        "### Data Preparation\n",
+        "\n",
+        "I begin by importing the original data set provided by Card and Krueger (1994). The data are stored as a flat ASCII file, which I read using whitespace as the delimiter."
+      ],
+      "id": "90feab29"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import pandas as pd\n",
+        "\n",
+        "df = pd.read_csv(\n",
+        "    \"../data/njmin/public.dat\",\n",
+        "    delim_whitespace=True,\n",
+        "    header=None\n",
+        ")\n",
+        "df.columns = [\n",
+        "    \"sheet\",\"chain\",\"co_owned\",\"state\",\n",
+        "    \"southj\",\"centralj\",\"northj\",\"pa1\",\"pa2\",\"shore\",\n",
+        "    \"ncalls\",\"empft\",\"emppt\",\"nmgrs\",\"wage_st\",\"inctime\",\n",
+        "    \"firstinc\",\"bonus\",\"pctaff\",\"meals\",\"open\",\"hrsopen\",\n",
+        "    \"psoda\",\"pfry\",\"pentree\",\"nregs\",\"nregs11\",\n",
+        "    \"type2\",\"status2\",\"date2\",\"ncalls2\",\n",
+        "    \"empft2\",\"emppt2\",\"nmgrs2\",\"wage_st2\",\n",
+        "    \"inctime2\",\"firstin2\",\"special2\",\"meals2\",\n",
+        "    \"open2r\",\"hrsopen2\",\"psoda2\",\"pfry2\",\"pentree2\",\n",
+        "    \"nregs2\",\"nregs112\"\n",
+        "]\n",
+        "\n",
+        "df.head()"
+      ],
+      "id": "a2679114",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Missing values in the original data are coded as \".\", and I convert them to standard missing values.\n",
+        "\n",
+        "Next, I assign variable names according to the codebook provided with the data. This allows me to work with meaningful variable names such as employment, wages, and prices rather than numeric column indices.\n",
+        "\n",
+        "I then construct the key variables used in the analysis. In particular, I compute full-time equivalent (FTE) employment as the number of full-time workers plus managers plus half the number of part-time workers, following the definition in the paper. I also extract the starting wage and construct the price of a full meal as the sum of the prices of a soda, fries, and an entree.\n",
+        "\n",
+        "Finally, I create a state indicator that distinguishes between New Jersey (treatment group) and Pennsylvania (control group), which will be used in the difference-in-differences analysis."
+      ],
+      "id": "2ed4980c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "\n",
+        "df = df.replace(\".\", np.nan)\n",
+        "df = df.apply(pd.to_numeric, errors=\"coerce\")\n",
+        "\n",
+        "# state name\n",
+        "df[\"state_name\"] = df[\"state\"].map({1: \"NJ\", 0: \"PA\"})\n",
+        "\n",
+        "# FTE\n",
+        "df[\"fte\"] = df[\"empft\"] + df[\"nmgrs\"] + 0.5 * df[\"emppt\"]\n",
+        "df[\"fte2\"] = df[\"empft2\"] + df[\"nmgrs2\"] + 0.5 * df[\"emppt2\"]\n",
+        "\n",
+        "# wage\n",
+        "df[\"wage\"] = df[\"wage_st\"]\n",
+        "df[\"wage2\"] = df[\"wage_st2\"]\n",
+        "\n",
+        "# price\n",
+        "df[\"price\"] = df[\"psoda\"] + df[\"pfry\"] + df[\"pentree\"]\n",
+        "df[\"price2\"] = df[\"psoda2\"] + df[\"pfry2\"] + df[\"pentree2\"]\n",
+        "\n",
+        "df[[\"state_name\",\"fte\",\"fte2\",\"wage\",\"wage2\",\"price\",\"price2\"]].head()"
+      ],
+      "id": "c18cdd24",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Table 2: Means of Key Variables\n",
+        "I begin by reproducing the first part of Table 2, which reports the distribution of store types in New Jersey and Pennsylvania. This part of the table shows the shares of Burger King, KFC, Roy Rogers, and Wendy’s restaurants, as well as the share of company-owned stores. The purpose is to compare the composition of restaurants across the two states before examining employment and wage outcomes."
+      ],
+      "id": "c22fc8d5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Table 2, Part 1: distribution of store types\n",
+        "\n",
+        "df[\"bk\"] = (df[\"chain\"] == 1).astype(float)\n",
+        "df[\"kfc\"] = (df[\"chain\"] == 2).astype(float)\n",
+        "df[\"roys\"] = (df[\"chain\"] == 3).astype(float)\n",
+        "df[\"wendys\"] = (df[\"chain\"] == 4).astype(float)\n",
+        "df[\"company_owned\"] = df[\"co_owned\"].astype(float)\n",
+        "\n",
+        "table2_part1 = df.groupby(\"state_name\")[\n",
+        "    [\"bk\", \"kfc\", \"roys\", \"wendys\", \"company_owned\"]\n",
+        "].mean() * 100\n",
+        "\n",
+        "table2_part1.round(1)"
+      ],
+      "id": "7386264d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The distribution of store types is very similar across New Jersey and Pennsylvania. In New Jersey, 41.1% of stores are Burger King, 20.5% are KFC, 24.8% are Roy Rogers, and 13.6% are Wendy’s. In Pennsylvania, the corresponding shares are 44.3%, 15.2%, 21.5%, and 19.0%.\n",
+        "\n",
+        "The share of company-owned stores is also similar, at 34.1% in New Jersey and 35.4% in Pennsylvania.\n",
+        "\n",
+        "Overall, the composition of restaurants across the two states is quite similar, with no large differences in the distribution of chains or ownership.\n",
+        "\n",
+        "I next reproduce the Wave 1 means reported in Table 2, which summarize employment, wages, prices, hours of operation, and recruiting practices for restaurants in New Jersey and Pennsylvania before the minimum wage increase."
+      ],
+      "id": "0f53ef64"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Table 2, Part 2: Wave 1 means\n",
+        "df[\"pct_fulltime\"] = df[\"empft\"] / (df[\"empft\"] + df[\"emppt\"])\n",
+        "df[\"wage_425\"] = (df[\"wage_st\"] == 4.25).astype(float)\n",
+        "df[\"hours_open\"] = df[\"hrsopen\"]\n",
+        "df[\"bonus_dummy\"] = df[\"bonus\"].astype(float)\n",
+        "\n",
+        "table2_part2 = df.groupby(\"state_name\")[\n",
+        "    [\"fte\", \"pct_fulltime\", \"wage\", \"wage_425\", \"price\", \"hours_open\", \"bonus_dummy\"]\n",
+        "].mean()\n",
+        "\n",
+        "table2_part2[\"pct_fulltime\"] *= 100\n",
+        "table2_part2[\"wage_425\"] *= 100\n",
+        "table2_part2[\"bonus_dummy\"] *= 100\n",
+        "\n",
+        "table2_part2.round(2)"
+      ],
+      "id": "82e49261",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The Wave 1 means show that average FTE employment is 20.44 in New Jersey and 23.33 in Pennsylvania. The percentage of full-time employees is 28.63 in New Jersey and 30.29 in Pennsylvania.\n",
+        "\n",
+        "Average starting wages are 4.61 in New Jersey and 4.63 in Pennsylvania. The proportion of stores paying exactly $4.25 per hour is 30.51% in New Jersey and 32.91% in Pennsylvania.\n",
+        "\n",
+        "The average price of a full meal is 3.35 in New Jersey and 3.04 in Pennsylvania. Average weekday hours open are 14.42 in New Jersey and 14.53 in Pennsylvania. The share of stores offering a recruiting bonus is 23.56% in New Jersey and 29.11% in Pennsylvania.\n",
+        "\n",
+        "I now reproduce the Wave 2 means reported in Table 2, which summarize employment, wages, prices, hours of operation, and recruiting practices after the minimum wage increase."
+      ],
+      "id": "70daf427"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Table 2, Part 3: Wave 2 means\n",
+        "df[\"pct_fulltime2\"] = df[\"empft2\"] / (df[\"empft2\"] + df[\"emppt2\"])\n",
+        "df[\"wage_425_2\"] = (df[\"wage_st2\"] == 4.25).astype(float)\n",
+        "df[\"wage_505_2\"] = (df[\"wage_st2\"] == 5.05).astype(float)\n",
+        "df[\"hours_open2\"] = df[\"hrsopen2\"]\n",
+        "df[\"bonus_dummy2\"] = df[\"special2\"].astype(float)\n",
+        "\n",
+        "table2_part3 = df.groupby(\"state_name\")[\n",
+        "    [\"fte2\", \"pct_fulltime2\", \"wage2\", \"wage_425_2\", \"wage_505_2\", \"price2\", \"hours_open2\", \"bonus_dummy2\"]\n",
+        "].mean()\n",
+        "\n",
+        "table2_part3[\"pct_fulltime2\"] *= 100\n",
+        "table2_part3[\"wage_425_2\"] *= 100\n",
+        "table2_part3[\"wage_505_2\"] *= 100\n",
+        "table2_part3[\"bonus_dummy2\"] *= 100\n",
+        "\n",
+        "table2_part3.round(2)"
+      ],
+      "id": "20894db0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The Wave 2 means show that average FTE employment is 21.03 in New Jersey and 21.17 in Pennsylvania. The percentage of full-time employees is 32.01 in New Jersey and 26.02 in Pennsylvania.\n",
+        "\n",
+        "Average starting wages are 5.08 in New Jersey and 4.62 in Pennsylvania. The proportion of stores paying $4.25 per hour is 0.00% in New Jersey and 25.32% in Pennsylvania, while the proportion paying $5.05 per hour is 85.50% in New Jersey and 1.27% in Pennsylvania.\n",
+        "\n",
+        "The average price of a full meal is 3.41 in New Jersey and 3.03 in Pennsylvania. Average weekday hours open are 14.42 in New Jersey and 14.65 in Pennsylvania. The share of stores offering a recruiting bonus is 20.32% in New Jersey and 23.38% in Pennsylvania.\n",
+        "\n",
+        "### Table 3: Difference-in-Differences Estimate\n",
+        "\n",
+        "I replicate the first three rows and first three columns of Table 3. I report the mean FTE employment before and after the policy change for New Jersey and Pennsylvania, and compute the change as the difference between the two periods. The difference-in-differences estimate is obtained as the difference between the changes in New Jersey and Pennsylvania."
+      ],
+      "id": "48848511"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Row 1: before (all available)\n",
+        "before = df.groupby(\"state_name\")[\"fte\"].mean()\n",
+        "\n",
+        "# Row 2: after (all available)\n",
+        "after = df.groupby(\"state_name\")[\"fte2\"].mean()\n",
+        "\n",
+        "# Row 3: change = mean(after) - mean(before)\n",
+        "change = after - before\n",
+        "\n",
+        "table3 = pd.DataFrame({\n",
+        "    \"PA\": [before[\"PA\"], after[\"PA\"], change[\"PA\"]],\n",
+        "    \"NJ\": [before[\"NJ\"], after[\"NJ\"], change[\"NJ\"]],\n",
+        "})\n",
+        "\n",
+        "table3[\"Difference (NJ-PA)\"] = table3[\"NJ\"] - table3[\"PA\"]\n",
+        "\n",
+        "table3.index = [\n",
+        "    \"1. FTE employment before\",\n",
+        "    \"2. FTE employment after\",\n",
+        "    \"3. Change in mean FTE\"\n",
+        "]\n",
+        "\n",
+        "table3.round(2)"
+      ],
+      "id": "3024ea4c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The table shows that before the policy change, average FTE employment is 23.33 in Pennsylvania and 20.44 in New Jersey, with a difference of −2.89. After the policy change, average employment is 21.17 in Pennsylvania and 21.03 in New Jersey, with a much smaller difference of −0.14.\n",
+        "\n",
+        "The change in mean employment is −2.17 in Pennsylvania and 0.59 in New Jersey. This implies a difference-in-differences estimate of 2.75.\n",
+        "\n",
+        "This result indicates that employment in New Jersey increased relative to Pennsylvania over this period. The estimate closely matches the corresponding value reported in the original paper.\n",
+        "\n",
+        "\n",
+        "### Table 4: Reduced-Form Model for Change in Employment\n",
+        "\n",
+        "I next replicate column (i) of Table 4 in Card and Krueger (1994). In this specification, the dependent variable is the change in full-time-equivalent employment between Wave 1 and Wave 2, and the only explanatory variable is a dummy for whether the restaurant is located in New Jersey. This is the simplest reduced-form specification in the paper and corresponds to a difference-in-differences regression without additional controls."
+      ],
+      "id": "1051165c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import statsmodels.api as sm\n",
+        "\n",
+        "# Table 4, column (i): use stores with non-missing employment and wage data in both waves\n",
+        "t4 = df[[\"fte\", \"fte2\", \"wage\", \"wage2\", \"state\"]].dropna().copy()\n",
+        "\n",
+        "# Change in employment\n",
+        "t4[\"d_fte\"] = t4[\"fte2\"] - t4[\"fte\"]\n",
+        "\n",
+        "# OLS: change in employment on New Jersey dummy\n",
+        "X = sm.add_constant(t4[\"state\"])\n",
+        "y = t4[\"d_fte\"]\n",
+        "\n",
+        "model_t4_col1 = sm.OLS(y, X).fit()\n",
+        "\n",
+        "# Extract values\n",
+        "coef = model_t4_col1.params[\"state\"]\n",
+        "se = model_t4_col1.bse[\"state\"]\n",
+        "ser = np.sqrt(model_t4_col1.scale)\n",
+        "\n",
+        "# Build a table in the style of Table 4, column (i)\n",
+        "table4_col1 = pd.DataFrame({\n",
+        "    \"(i)\": [\n",
+        "        f\"{coef:.2f}\",\n",
+        "        f\"({se:.2f})\",\n",
+        "        \"no\",\n",
+        "        \"no\",\n",
+        "        f\"{ser:.2f}\",\n",
+        "        \"—\"\n",
+        "    ]\n",
+        "}, index=[\n",
+        "    \"1. New Jersey dummy\",\n",
+        "    \"\",\n",
+        "    \"3. Controls for chain and ownership\",\n",
+        "    \"4. Controls for region\",\n",
+        "    \"5. Standard error of regression\",\n",
+        "    \"6. Probability value for controls\"\n",
+        "])\n",
+        "\n",
+        "table4_col1"
+      ],
+      "id": "9564583e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The estimated coefficient on the New Jersey dummy is 2.28, with a standard error of 1.19. The standard error of the regression is 8.71. These values are very close to those reported in the paper (2.33 and 1.19, respectively, with a regression standard error of 8.79). The small differences are likely due to minor differences in sample construction.\n",
+        "\n",
+        "## Something Additional\n",
+        "In addition to replicating the main tables, I present a graphical illustration of the difference-in-differences result. While the paper reports the employment changes in tabular form, a simple plot can help visualize how employment evolved in New Jersey and Pennsylvania before and after the policy change."
+      ],
+      "id": "d8484fe6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "before = df.groupby(\"state_name\")[\"fte\"].mean()\n",
+        "after = df.groupby(\"state_name\")[\"fte2\"].mean()\n",
+        "\n",
+        "plt.figure()\n",
+        "\n",
+        "plt.plot([\"Before\",\"After\"], [before[\"NJ\"], after[\"NJ\"]], marker=\"o\", label=\"New Jersey\")\n",
+        "plt.plot([\"Before\",\"After\"], [before[\"PA\"], after[\"PA\"]], marker=\"o\", label=\"Pennsylvania\")\n",
+        "\n",
+        "plt.ylabel(\"FTE Employment\")\n",
+        "plt.title(\"Employment Before and After Minimum Wage Increase\")\n",
+        "\n",
+        "plt.legend()\n",
+        "plt.show()"
+      ],
+      "id": "7a1276c4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The figure shows that employment in New Jersey increased slightly after the minimum wage increase, rising from 20.44 to 21.03. In contrast, employment in Pennsylvania declined over the same period, falling from 23.33 to 21.17.\n",
+        "\n",
+        "The gap between the two lines narrows substantially after the policy change, which visually represents the positive difference-in-differences estimate. This pattern confirms the main finding of the paper: employment in New Jersey did not decrease relative to Pennsylvania following the minimum wage increase."
+      ],
+      "id": "f3c2f6ad"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "quarto-conda",
+      "language": "python",
+      "display_name": "Python (quarto-conda)",
+      "path": "/Users/snowash/Library/Jupyter/kernels/quarto-conda"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
