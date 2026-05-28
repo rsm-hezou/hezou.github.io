@@ -28,7 +28,7 @@
         "\n",
         "I begin by importing the original data set provided by Card and Krueger (1994). The data are stored as a flat ASCII file, which I read using whitespace as the delimiter."
       ],
-      "id": "90feab29"
+      "id": "883c3a49"
     },
     {
       "cell_type": "code",
@@ -56,7 +56,7 @@
         "\n",
         "df.head()"
       ],
-      "id": "a2679114",
+      "id": "5f383c2d",
       "execution_count": null,
       "outputs": []
     },
@@ -72,7 +72,7 @@
         "\n",
         "Finally, I create a state indicator that distinguishes between New Jersey (treatment group) and Pennsylvania (control group), which will be used in the difference-in-differences analysis."
       ],
-      "id": "2ed4980c"
+      "id": "bd44219e"
     },
     {
       "cell_type": "code",
@@ -100,7 +100,7 @@
         "\n",
         "df[[\"state_name\",\"fte\",\"fte2\",\"wage\",\"wage2\",\"price\",\"price2\"]].head()"
       ],
-      "id": "c18cdd24",
+      "id": "17edd545",
       "execution_count": null,
       "outputs": []
     },
@@ -111,7 +111,7 @@
         "### Table 2: Means of Key Variables\n",
         "I begin by reproducing the first part of Table 2, which reports the distribution of store types in New Jersey and Pennsylvania. This part of the table shows the shares of Burger King, KFC, Roy Rogers, and Wendy’s restaurants, as well as the share of company-owned stores. The purpose is to compare the composition of restaurants across the two states before examining employment and wage outcomes."
       ],
-      "id": "c22fc8d5"
+      "id": "75a86052"
     },
     {
       "cell_type": "code",
@@ -131,7 +131,7 @@
         "\n",
         "table2_part1.round(1)"
       ],
-      "id": "7386264d",
+      "id": "229f843f",
       "execution_count": null,
       "outputs": []
     },
@@ -147,7 +147,7 @@
         "\n",
         "I next reproduce the Wave 1 means reported in Table 2, which summarize employment, wages, prices, hours of operation, and recruiting practices for restaurants in New Jersey and Pennsylvania before the minimum wage increase."
       ],
-      "id": "0f53ef64"
+      "id": "6bfef91e"
     },
     {
       "cell_type": "code",
@@ -169,7 +169,7 @@
         "\n",
         "table2_part2.round(2)"
       ],
-      "id": "82e49261",
+      "id": "b4d67d22",
       "execution_count": null,
       "outputs": []
     },
@@ -185,7 +185,7 @@
         "\n",
         "I now reproduce the Wave 2 means reported in Table 2, which summarize employment, wages, prices, hours of operation, and recruiting practices after the minimum wage increase."
       ],
-      "id": "70daf427"
+      "id": "2e3d796e"
     },
     {
       "cell_type": "code",
@@ -209,7 +209,7 @@
         "\n",
         "table2_part3.round(2)"
       ],
-      "id": "20894db0",
+      "id": "80da20b5",
       "execution_count": null,
       "outputs": []
     },
@@ -227,7 +227,7 @@
         "\n",
         "I replicate the first three rows and first three columns of Table 3. I report the mean FTE employment before and after the policy change for New Jersey and Pennsylvania, and compute the change as the difference between the two periods. The difference-in-differences estimate is obtained as the difference between the changes in New Jersey and Pennsylvania."
       ],
-      "id": "48848511"
+      "id": "2c7a95e6"
     },
     {
       "cell_type": "code",
@@ -257,7 +257,7 @@
         "\n",
         "table3.round(2)"
       ],
-      "id": "3024ea4c",
+      "id": "96cc70cf",
       "execution_count": null,
       "outputs": []
     },
@@ -276,7 +276,7 @@
         "\n",
         "I next replicate column (i) of Table 4 in Card and Krueger (1994). In this specification, the dependent variable is the change in full-time-equivalent employment between Wave 1 and Wave 2, and the only explanatory variable is a dummy for whether the restaurant is located in New Jersey. This is the simplest reduced-form specification in the paper and corresponds to a difference-in-differences regression without additional controls."
       ],
-      "id": "1051165c"
+      "id": "0469f3ab"
     },
     {
       "cell_type": "code",
@@ -322,7 +322,7 @@
         "\n",
         "table4_col1"
       ],
-      "id": "9564583e",
+      "id": "33b76cb4",
       "execution_count": null,
       "outputs": []
     },
@@ -335,7 +335,7 @@
         "## Something Additional\n",
         "In addition to replicating the main tables, I present a graphical illustration of the difference-in-differences result. While the paper reports the employment changes in tabular form, a simple plot can help visualize how employment evolved in New Jersey and Pennsylvania before and after the policy change."
       ],
-      "id": "d8484fe6"
+      "id": "6e166f5b"
     },
     {
       "cell_type": "code",
@@ -357,7 +357,7 @@
         "plt.legend()\n",
         "plt.show()"
       ],
-      "id": "7a1276c4",
+      "id": "1123c5bb",
       "execution_count": null,
       "outputs": []
     },
@@ -369,7 +369,7 @@
         "\n",
         "The gap between the two lines narrows substantially after the policy change, which visually represents the positive difference-in-differences estimate. This pattern confirms the main finding of the paper: employment in New Jersey did not decrease relative to Pennsylvania following the minimum wage increase."
       ],
-      "id": "f3c2f6ad"
+      "id": "5c42e066"
     }
   ],
   "metadata": {

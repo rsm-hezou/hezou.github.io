@@ -51,7 +51,7 @@
         "\n",
         "We now simulate data from these two Bernoulli distributions. Specifically, we generate 1,000 observations for each group. Each observation takes the value 1 if the visitor signs up and 0 otherwise. A sample size of 1,000 per group is large enough to clearly illustrate the statistical properties we are interested in, while still allowing us to observe randomness in the data."
       ],
-      "id": "c661ac9a"
+      "id": "daff6148"
     },
     {
       "cell_type": "code",
@@ -72,7 +72,7 @@
         "A = np.random.binomial(1, pi_A, n_A)\n",
         "B = np.random.binomial(1, pi_B, n_B)"
       ],
-      "id": "19b1c6ca",
+      "id": "f92f2e5e",
       "execution_count": null,
       "outputs": []
     },
@@ -88,7 +88,7 @@
         "\n",
         "To illustrate this idea, we examine how the running average of the difference evolves as we include more observations."
       ],
-      "id": "4ee5a45b"
+      "id": "6782da82"
     },
     {
       "cell_type": "code",
@@ -103,7 +103,7 @@
         "# Compute cumulative (running) average\n",
         "running_mean = np.cumsum(diffs) / np.arange(1, len(diffs) + 1)"
       ],
-      "id": "1e59fbe5",
+      "id": "1b8505a0",
       "execution_count": null,
       "outputs": []
     },
@@ -124,7 +124,7 @@
         "plt.legend()\n",
         "plt.show()"
       ],
-      "id": "c8cce245",
+      "id": "3eb323b3",
       "execution_count": null,
       "outputs": []
     },
@@ -147,7 +147,7 @@
         "\n",
         "One way to answer this question is through the bootstrap. The bootstrap is a resampling method where we repeatedly draw new samples (with replacement) from our observed data, compute the statistic each time, and measure how much it varies."
       ],
-      "id": "baefe58a"
+      "id": "ee11dfe0"
     },
     {
       "cell_type": "code",
@@ -170,7 +170,7 @@
         "\n",
         "print(f\"Bootstrap SE: {bootstrap_se:.4f}\")"
       ],
-      "id": "357827a6",
+      "id": "5080b834",
       "execution_count": null,
       "outputs": []
     },
@@ -182,7 +182,7 @@
         "\n",
         "We can compare this to the analytical standard error:"
       ],
-      "id": "7bf34405"
+      "id": "3809640d"
     },
     {
       "cell_type": "code",
@@ -201,7 +201,7 @@
         "\n",
         "analytical_se"
       ],
-      "id": "b5ca0fea",
+      "id": "dee6740f",
       "execution_count": null,
       "outputs": []
     },
@@ -211,7 +211,7 @@
       "source": [
         "Now we construct a 95% confidence interval:"
       ],
-      "id": "f7bd04ab"
+      "id": "7bc68c28"
     },
     {
       "cell_type": "code",
@@ -225,7 +225,7 @@
         "print(f\"Point estimate: {theta_hat:.4f}\")\n",
         "print(f\"95% CI: ({ci_lower:.4f}, {ci_upper:.4f})\")"
       ],
-      "id": "fb0dca02",
+      "id": "9312c816",
       "execution_count": null,
       "outputs": []
     },
@@ -244,7 +244,7 @@
         "\n",
         "To illustrate this, I repeatedly simulate A/B tests at different sample sizes and examine the distribution of the resulting estimates. If the CLT holds, the distribution of $\\hat{\\theta}$ should look rougher and less regular for small samples, but become smoother and more bell-shaped as the sample size increases."
       ],
-      "id": "7ff2fb63"
+      "id": "da6532e5"
     },
     {
       "cell_type": "code",
@@ -268,7 +268,7 @@
         "\n",
         "    theta_sims[n] = np.array(estimates)"
       ],
-      "id": "b232cbb5",
+      "id": "fb8b8b2c",
       "execution_count": null,
       "outputs": []
     },
@@ -294,7 +294,7 @@
         "plt.tight_layout()\n",
         "plt.show()"
       ],
-      "id": "a8e5ba88",
+      "id": "0f2cd400",
       "execution_count": null,
       "outputs": []
     },
@@ -325,7 +325,7 @@
         "\n",
         "The logic behind this standardization is as follows. By the Central Limit Theorem, $\\hat{\\theta}$ is approximately Normally distributed when the sample size is large. Under the null hypothesis, the mean of this distribution is 0. Dividing by the standard error rescales the statistic so that it approximately follows a standard Normal distribution, $N(0,1)$. This allows us to compute a p-value."
       ],
-      "id": "9dce66b7"
+      "id": "91458304"
     },
     {
       "cell_type": "code",
@@ -357,7 +357,7 @@
         "\n",
         "z, p_value"
       ],
-      "id": "9b842b57",
+      "id": "95ee23f9",
       "execution_count": null,
       "outputs": []
     },
@@ -388,7 +388,7 @@
         "\n",
         "The coefficients in this model have a clear interpretation. When $D_i = 0$ (the B group), the expected value of $Y_i$ is $\\beta_0$, which corresponds to the mean sign-up rate for CTA B. When $D_i = 1$ (the A group), the expected value is $\\beta_0 + \\beta_1$, which corresponds to the mean sign-up rate for CTA A. Therefore, $\\beta_1 = \\pi_A - \\pi_B = \\theta$, and the OLS estimate $\\hat{\\beta}_1$ is exactly the same as $\\hat{\\theta}$."
       ],
-      "id": "f6d12116"
+      "id": "9cbc23f7"
     },
     {
       "cell_type": "code",
@@ -416,7 +416,7 @@
         "\n",
         "coef, se, pval"
       ],
-      "id": "e00fc4ea",
+      "id": "e52e9e9a",
       "execution_count": null,
       "outputs": []
     },
@@ -437,7 +437,7 @@
         "\n",
         "To demonstrate this, we simulate a setting in which the null hypothesis is true. Specifically, we assume that both CTAs have the same sign-up probability, $\\pi_A = \\pi_B = 0.20$, so that $\\theta = 0$."
       ],
-      "id": "ce29aa9b"
+      "id": "8f20b310"
     },
     {
       "cell_type": "code",
@@ -454,7 +454,7 @@
         "\n",
         "false_positive_count = 0"
       ],
-      "id": "d2a20ffa",
+      "id": "98072f83",
       "execution_count": null,
       "outputs": []
     },
@@ -495,7 +495,7 @@
         "false_positive_rate = false_positive_count / n_exp\n",
         "false_positive_rate"
       ],
-      "id": "308cab70",
+      "id": "2ec90eeb",
       "execution_count": null,
       "outputs": []
     },
@@ -509,7 +509,7 @@
         "\n",
         "To avoid this issue, analysts must either commit to a fixed sample size in advance or use statistical methods specifically designed for sequential testing."
       ],
-      "id": "a17ee93d"
+      "id": "6d2e9083"
     }
   ],
   "metadata": {
