@@ -1,0 +1,619 @@
+---
+title: "Key Drivers Analysis"
+author: "He Zou"
+date: 2026-06-12
+format:
+  html:
+    toc: true
+    code-fold: true
+    code-tools: true
+execute:
+  warning: false
+  message: false
+jupyter: python3
+---
+
+## Introduction
+
+Customer satisfaction is an important outcome for firms because it is often connected to loyalty, repeat purchase, positive word of mouth, and long-term customer value. However, knowing that customers are satisfied or dissatisfied is not enough. Managers also need to understand *which perceptions are most strongly associated with satisfaction*.
+
+This analysis uses a customer satisfaction survey dataset to identify the most important drivers of satisfaction. The survey includes several perception measures, such as whether the brand is trusted, whether the product is easy to use, whether it has appealing rewards, and whether it provides strong customer service.
+
+The goal of this analysis is to replicate the type of key driver table shown in the course slides. Specifically, I calculate several different measures of variable importance:
+
+- Pearson correlations
+- Standardized multiple regression coefficients
+- Drop-one usefulness
+- LMG / Shapley values for a linear regression
+- Johnson's relative weights
+- Mean decrease in Gini coefficient from a random forest
+
+Polychoric correlations are omitted, as allowed by the assignment instructions.
+
+## Research question
+
+The main research question is:
+
+> Which customer perceptions are the most important drivers of overall customer satisfaction?
+
+To answer this question, I compare multiple importance metrics rather than relying on only one method. This is useful because different methods capture different aspects of the relationship between perception variables and satisfaction.
+
+```{python}
+#| label: setup
+#| include: false
+
+import math
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestClassifier
+
+from IPython.display import display, Markdown
+```
+
+## 1. Load the data
+
+The dataset used in this analysis is a customer satisfaction survey dataset. Each row represents a survey response. The key outcome variable is `satisfaction`, and the main explanatory variables are perception items related to the customer experience.
+
+```{python}
+#| label: load-data
+
+DATA_PATH = "data_for_drivers_analysis.csv"
+
+df = pd.read_csv(DATA_PATH)
+
+display(Markdown(f"The dataset has **{df.shape[0]:,} rows** and **{df.shape[1]:,} columns**."))
+display(df.head())
+```
+
+The first few rows show that the dataset includes an ID variable, a brand variable, an overall satisfaction measure, and several perception variables. Since the purpose of this analysis is to understand the drivers of satisfaction, the ID and brand variables are not used as key drivers in the main model.
+
+## 2. Select the outcome and key driver variables
+
+The dependent variable is `satisfaction`. This is the outcome that the analysis is trying to explain.
+
+The independent variables are the nine perception measures. These variables represent possible reasons why a customer may be more or less satisfied.
+
+```{python}
+#| label: variable-selection
+
+outcome_col = "satisfaction"
+
+driver_cols = [
+    "trust",
+    "build",
+    "differs",
+    "easy",
+    "appealing",
+    "rewarding",
+    "popular",
+    "service",
+    "impact",
+]
+
+perception_labels = {
+    "trust": "Is offered by a brand I trust",
+    "build": "Helps build credit quickly",
+    "differs": "Is different from other cards",
+    "easy": "Is easy to use",
+    "appealing": "Has appealing benefits or rewards",
+    "rewarding": "Rewards me for responsible usage",
+    "popular": "Is used by a lot of people",
+    "service": "Provides outstanding customer service",
+    "impact": "Makes a difference in my life",
+}
+
+analysis_cols = [outcome_col] + driver_cols
+
+model_df = df[analysis_cols].dropna().copy()
+
+display(Markdown(f"Outcome variable: **{outcome_col}**"))
+display(Markdown(f"Number of observations used after dropping missing values: **{model_df.shape[0]:,}**"))
+display(model_df.head())
+```
+
+The analysis uses complete cases, meaning that rows with missing values in the outcome or driver variables are removed. This keeps the comparison across methods consistent because each method uses the same set of observations.
+
+## 3. Method overview
+
+A key driver analysis tries to determine which explanatory variables matter most for an outcome. In this case, the outcome is satisfaction.
+
+No single method is perfect. For example, Pearson correlations are simple and easy to understand, but they do not account for overlap among predictors. Regression coefficients account for other variables, but they can be unstable when predictors are correlated. Shapley values and Johnson's relative weights are useful because they decompose model explanatory power across predictors.
+
+For this reason, I use several methods and compare whether the same variables appear important across methods.
+
+```{python}
+#| label: helper-functions
+#| echo: true
+#| code-fold: false
+def standardize_vector(x):
+    x = np.asarray(x, dtype=float)
+    return (x - np.mean(x)) / np.std(x, ddof=1)
+
+
+def standardize_matrix(X):
+    X = np.asarray(X, dtype=float)
+    means = np.mean(X, axis=0)
+    sds = np.std(X, axis=0, ddof=1)
+    return (X - means) / sds
+
+
+def normalize_to_100(values, use_absolute=True):
+    values = np.asarray(values, dtype=float)
+
+    if use_absolute:
+        values = np.abs(values)
+    else:
+        values = np.where(values < 0, 0, values)
+
+    total = np.sum(values)
+
+    if total == 0:
+        return np.repeat(np.nan, len(values))
+
+    return 100 * values / total
+
+
+def r2_score_for_features(X, y, feature_indices):
+    feature_indices = list(feature_indices)
+
+    if len(feature_indices) == 0:
+        return 0.0
+
+    model = LinearRegression()
+    model.fit(X[:, feature_indices], y)
+
+    return model.score(X[:, feature_indices], y)
+
+
+def exact_shapley_r2_values(X, y):
+    """
+    Exact LMG / Shapley values using linear regression R-squared
+    as the fit metric.
+    """
+    p = X.shape[1]
+    p_factorial = math.factorial(p)
+
+    r2_cache = {}
+
+    def r2_for_mask(mask):
+        if mask not in r2_cache:
+            feature_indices = [
+                j for j in range(p)
+                if mask & (1 << j)
+            ]
+            r2_cache[mask] = r2_score_for_features(X, y, feature_indices)
+        return r2_cache[mask]
+
+    shapley_values = np.zeros(p)
+
+    for j in range(p):
+        for mask in range(1 << p):
+            if mask & (1 << j):
+                continue
+
+            subset_size = mask.bit_count()
+
+            weight = (
+                math.factorial(subset_size)
+                * math.factorial(p - subset_size - 1)
+                / p_factorial
+            )
+
+            r2_without_j = r2_for_mask(mask)
+            r2_with_j = r2_for_mask(mask | (1 << j))
+
+            shapley_values[j] += weight * (r2_with_j - r2_without_j)
+
+    return shapley_values
+
+
+def johnson_relative_weights(X_z, y_z):
+    """
+    Johnson's relative weights.
+
+    This decomposes model R-squared into predictor-specific contributions
+    while accounting for correlation among predictors.
+    """
+    p = X_z.shape[1]
+
+    Rxx = np.corrcoef(X_z, rowvar=False)
+
+    rxy = np.array([
+        np.corrcoef(X_z[:, j], y_z)[0, 1]
+        for j in range(p)
+    ])
+
+    eigenvalues, eigenvectors = np.linalg.eigh(Rxx)
+    eigenvalues = np.clip(eigenvalues, 0, None)
+
+    lambda_matrix = (
+        eigenvectors
+        @ np.diag(np.sqrt(eigenvalues))
+        @ eigenvectors.T
+    )
+
+    beta_star = np.linalg.pinv(lambda_matrix) @ rxy
+
+    raw_weights = (lambda_matrix ** 2) @ (beta_star ** 2)
+    raw_weights = np.clip(raw_weights, 0, None)
+
+    return raw_weights
+```
+
+## 4. Prepare the analysis data
+
+Before fitting the models, the predictor variables and the satisfaction outcome are converted into numerical arrays.
+
+For the regression-based methods, I also standardize the variables. Standardization puts all variables on the same scale, with mean 0 and standard deviation 1. This makes regression coefficients easier to compare across predictors.
+
+```{python}
+#| label: prepare-data
+
+X_raw = model_df[driver_cols].to_numpy(dtype=float)
+y_raw = model_df[outcome_col].to_numpy(dtype=float)
+
+X_z = standardize_matrix(X_raw)
+y_z = standardize_vector(y_raw)
+
+n_obs = X_z.shape[0]
+n_drivers = X_z.shape[1]
+
+display(Markdown(f"Number of observations: **{n_obs:,}**"))
+display(Markdown(f"Number of key driver variables: **{n_drivers:,}**"))
+```
+
+The final analysis includes nine possible drivers of satisfaction. These nine drivers are compared across all importance methods.
+
+## 5. Pearson correlations
+
+Pearson correlations measure the simple bivariate relationship between each perception variable and satisfaction.
+
+A high Pearson correlation means that customers who rate that perception higher also tend to report higher satisfaction. However, Pearson correlations do not control for the other perception variables. Therefore, they are useful as an initial measure but should not be interpreted as the only evidence of importance.
+
+```{python}
+#| label: pearson-correlations
+
+pearson_raw = np.array([
+    np.corrcoef(X_z[:, j], y_z)[0, 1]
+    for j in range(n_drivers)
+])
+
+pearson_pct = normalize_to_100(
+    pearson_raw,
+    use_absolute=True
+)
+```
+
+## 6. Standardized multiple regression coefficients
+
+Next, I estimate a multiple linear regression model predicting satisfaction from all nine perception variables.
+
+Because the variables are standardized, the regression coefficients can be compared directly. A larger standardized coefficient means that a variable has a stronger relationship with satisfaction after controlling for the other variables in the model.
+
+```{python}
+#| label: standardized-regression
+#| echo: true
+#| code-fold: false
+
+standardized_lm = LinearRegression()
+standardized_lm.fit(X_z, y_z)
+
+standardized_betas_raw = standardized_lm.coef_
+
+standardized_betas_pct = normalize_to_100(
+    standardized_betas_raw,
+    use_absolute=True
+)
+
+full_model_r2 = standardized_lm.score(X_z, y_z)
+
+display(Markdown(f"The full linear regression model has an R-squared of **{full_model_r2:.3f}**."))
+```
+
+The R-squared value shows the proportion of variation in satisfaction explained by the full set of perception variables. A higher R-squared means the perception variables collectively explain more of the differences in customer satisfaction.
+
+## 7. Drop-one usefulness
+
+Drop-one usefulness measures how much model performance decreases when a variable is removed from the full regression model.
+
+The logic is simple: if removing a variable causes a large drop in R-squared, then that variable is useful for explaining satisfaction. If removing a variable barely changes R-squared, then that variable contributes little unique explanatory power beyond the other variables.
+
+```{python}
+#| label: drop-one-usefulness
+#| echo: true
+#| code-fold: false
+
+all_features = list(range(n_drivers))
+
+drop_one_raw = []
+
+for j in range(n_drivers):
+    features_without_j = [
+        idx for idx in all_features
+        if idx != j
+    ]
+
+    r2_without_j = r2_score_for_features(
+        X_z,
+        y_z,
+        features_without_j
+    )
+
+    usefulness_j = full_model_r2 - r2_without_j
+    drop_one_raw.append(usefulness_j)
+
+drop_one_raw = np.array(drop_one_raw)
+
+drop_one_pct = normalize_to_100(
+    drop_one_raw,
+    use_absolute=False
+)
+```
+
+Drop-one usefulness is especially helpful because it focuses on the unique contribution of each variable when the full set of variables is already included in the model.
+
+## 8. LMG / Shapley values
+
+LMG / Shapley values provide a more comprehensive way to measure variable importance in a linear regression.
+
+The idea is to calculate how much each variable improves R-squared across all possible orders in which variables could be added to the model. This helps address the problem that correlated predictors can share explanatory power. Instead of assigning all shared explanatory power to whichever variable enters first, Shapley values fairly average the marginal contribution across all possible orderings.
+
+```{python}
+#| label: shapley-values
+#| echo: true
+#| code-fold: false
+
+shapley_raw = exact_shapley_r2_values(X_z, y_z)
+
+shapley_pct = normalize_to_100(
+    shapley_raw,
+    use_absolute=False
+)
+
+display(Markdown(f"The Shapley values sum to **{shapley_raw.sum():.3f}**, which equals the model R-squared."))
+```
+
+In this analysis, Shapley values are calculated exactly using R-squared as the fit metric. This directly follows the optional challenge described in the assignment.
+
+## 9. Johnson's relative weights
+
+Johnson's relative weights are another method for decomposing R-squared among predictors.
+
+This method is useful when predictors are correlated. Instead of relying only on standardized regression coefficients, Johnson's relative weights transform the correlated predictors into orthogonal components and then allocate explained variance back to the original predictors.
+
+```{python}
+#| label: johnson-relative-weights
+#| echo: true
+#| code-fold: false
+johnson_raw = johnson_relative_weights(X_z, y_z)
+
+johnson_pct = normalize_to_100(
+    johnson_raw,
+    use_absolute=False
+)
+
+display(Markdown(f"Johnson's relative weights sum to **{johnson_raw.sum():.3f}**."))
+```
+
+If Johnson's relative weights and Shapley values identify the same top drivers, that provides stronger evidence that those variables are important.
+
+## 10. Random forest mean decrease in Gini coefficient
+
+The final method uses a random forest classifier. Random forests can capture nonlinear relationships and interactions among predictors.
+
+The random forest importance measure used here is mean decrease in Gini impurity. A variable receives higher importance when it is frequently used in decision trees to create splits that improve classification purity.
+
+```{python}
+#| label: random-forest-gini
+#| echo: true
+#| code-fold: false
+rf_model = RandomForestClassifier(
+    n_estimators=1000,
+    criterion="gini",
+    max_features="sqrt",
+    min_samples_leaf=5,
+    random_state=123
+)
+
+rf_model.fit(X_raw, y_raw.astype(int))
+
+rf_gini_raw = rf_model.feature_importances_
+
+rf_gini_pct = normalize_to_100(
+    rf_gini_raw,
+    use_absolute=False
+)
+```
+
+This method is not identical to the regression-based methods. Instead, it provides a machine-learning view of which variables are most useful for predicting satisfaction categories.
+
+## 11. Key driver analysis table
+
+The table below summarizes all key driver metrics. Each numeric column is normalized to sum to approximately 100%, which makes it easier to compare the relative importance of variables within each method.
+
+A value of 20% means that, within that method, the variable accounts for about one-fifth of the total measured importance.
+
+```{python}
+#| label: key-driver-table
+#| echo: true
+#| code-fold: false
+importance_df = pd.DataFrame({
+    "Perception": [
+        perception_labels[col]
+        for col in driver_cols
+    ],
+    "Pearson Correlations": pearson_pct,
+    "Standardized Multiple Regression Coefficients": standardized_betas_pct,
+    "Drop-one / Usefulness": drop_one_pct,
+    "LMG / Shapley Values": shapley_pct,
+    "Johnson's Epsilon": johnson_pct,
+    "Mean Decrease in RF Gini Coefficient": rf_gini_pct,
+})
+
+numeric_cols = [
+    "Pearson Correlations",
+    "Standardized Multiple Regression Coefficients",
+    "Drop-one / Usefulness",
+    "LMG / Shapley Values",
+    "Johnson's Epsilon",
+    "Mean Decrease in RF Gini Coefficient",
+]
+
+importance_df_rounded = importance_df.copy()
+
+for col in numeric_cols:
+    importance_df_rounded[col] = importance_df_rounded[col].round(1)
+
+display(importance_df_rounded)
+```
+
+```{python}
+#| label: styled-key-driver-table
+#| echo: false
+
+styled_table = (
+    importance_df
+    .style
+    .format({col: "{:.1f}%" for col in numeric_cols})
+    .background_gradient(
+        cmap="Greens",
+        subset=numeric_cols
+    )
+    .set_properties(
+        subset=["Perception"],
+        **{
+            "text-align": "left",
+            "white-space": "pre-wrap",
+        }
+    )
+    .set_properties(
+        subset=numeric_cols,
+        **{
+            "text-align": "center",
+        }
+    )
+    .set_table_styles([
+        {
+            "selector": "th",
+            "props": [
+                ("font-weight", "bold"),
+                ("text-align", "center"),
+                ("border-bottom", "2px solid black"),
+            ],
+        },
+        {
+            "selector": "td",
+            "props": [
+                ("padding", "6px 8px"),
+            ],
+        },
+        {
+            "selector": "table",
+            "props": [
+                ("border-collapse", "collapse"),
+                ("width", "100%"),
+            ],
+        },
+    ])
+)
+
+try:
+    styled_table = styled_table.hide(axis="index")
+except Exception:
+    styled_table = styled_table.hide_index()
+
+display(styled_table)
+```
+
+The darker green cells indicate larger importance values within each method. This makes it easier to see which perceptions stand out as the strongest drivers.
+
+## 12. Interpreting the results
+
+The most reliable key drivers are the variables that rank highly across several different methods. A variable that is important only in one method but not in others should be interpreted more cautiously.
+
+```{python}
+#| label: interpretation
+#| echo: false
+
+top_shapley = (
+    importance_df
+    .sort_values("LMG / Shapley Values", ascending=False)
+    .head(3)
+)
+
+top_johnson = (
+    importance_df
+    .sort_values("Johnson's Epsilon", ascending=False)
+    .head(3)
+)
+
+top_rf = (
+    importance_df
+    .sort_values("Mean Decrease in RF Gini Coefficient", ascending=False)
+    .head(3)
+)
+
+display(Markdown("### Top drivers based on LMG / Shapley values"))
+
+for _, row in top_shapley.iterrows():
+    perception = row["Perception"]
+    value = row["LMG / Shapley Values"]
+    display(Markdown(f"- **{perception}**: {value:.1f}%"))
+
+display(Markdown("### Top drivers based on Johnson's Epsilon"))
+
+for _, row in top_johnson.iterrows():
+    perception = row["Perception"]
+    value = row["Johnson's Epsilon"]
+    display(Markdown(f"- **{perception}**: {value:.1f}%"))
+
+display(Markdown("### Top drivers based on random forest Gini importance"))
+
+for _, row in top_rf.iterrows():
+    perception = row["Perception"]
+    value = row["Mean Decrease in RF Gini Coefficient"]
+    display(Markdown(f"- **{perception}**: {value:.1f}%"))
+```
+
+The Shapley and Johnson methods are especially important for interpretation because both methods decompose the explanatory power of the regression model. If the same perceptions are highly ranked by both methods, then those perceptions are likely to be meaningful drivers of satisfaction.
+
+The random forest results provide an additional predictive perspective. If a perception is also important in the random forest model, that suggests the variable is useful not only in a linear regression framework but also in a more flexible machine-learning model.
+
+## 13. Managerial implications
+
+From a managerial perspective, the most important variables in the key driver table should receive the greatest attention. These are the perceptions most strongly connected to customer satisfaction.
+
+For example, if trust, customer service, or perceived impact appear near the top across multiple methods, then managers should prioritize actions that improve those perceptions. This could include strengthening brand credibility, improving customer support quality, clarifying product benefits, or communicating the product's value more effectively.
+
+The key point is that customer satisfaction should not be improved through guesswork. A key driver analysis helps identify which parts of the customer experience are most closely associated with satisfaction, allowing managers to focus resources on the areas that are most likely to matter.
+
+## 14. Limitations
+
+This analysis has several limitations.
+
+First, the results are based on survey data, so the relationships should be interpreted as associations rather than definitive causal effects. A variable may be strongly related to satisfaction, but this does not automatically prove that changing that perception would cause satisfaction to increase.
+
+Second, several perception variables may be correlated with each other. This makes variable importance more difficult to measure. For that reason, this analysis uses Shapley values and Johnson's relative weights in addition to simple correlations and regression coefficients.
+
+Third, the random forest importance measure depends on the classification model and its settings. It should be interpreted as a predictive importance measure rather than a direct causal estimate.
+
+## Conclusion
+
+This key driver analysis compares several methods for measuring the importance of customer perceptions in explaining satisfaction. The strongest drivers are the perceptions that consistently receive high importance across Shapley values, Johnson's relative weights, and random forest Gini importance.
+
+Overall, the analysis provides a data-driven way to prioritize managerial action. Instead of treating all customer perceptions as equally important, the key driver table highlights which perceptions are most closely linked to satisfaction and therefore deserve the most attention.
+
+```{python}
+#| label: final-check
+#| echo: false
+
+column_sums = importance_df[numeric_cols].sum().to_frame("Column sum")
+
+display(Markdown("### Column sum check"))
+
+display(column_sums.round(1))
+```
